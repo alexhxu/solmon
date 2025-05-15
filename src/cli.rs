@@ -14,5 +14,6 @@ pub enum Commands {
     Status,
     Validator {
         pubkey: String
-    }
+    },
+    Watch
 }

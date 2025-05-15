@@ -1,6 +1,7 @@
 mod rpc;
 mod cli;
 mod output;
+mod ui;
 
 use rpc::*;
 use clap::Parser;
@@ -9,7 +10,7 @@ use output::*;
 use std::cmp::Reverse;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
     match args.command {
@@ -21,23 +22,33 @@ async fn main() {
                     print_kv("Slot", format!("{}/{}", info.slot_index, info.slots_in_epoch));
                     print_kv("Absolute Slot", info.absolute_slot);
                 },
-                Err(err) => eprintln!("Error: {}", err)
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    return Ok(());
+                }
             }
-        },
+        }
+
         Commands::Status => {
             print_title("Cluster Status");
-        
+
             match get_performance_samples().await {
                 Ok(samples) => {
                     if let Some(sample) = samples.first() {
                         let tps = sample.num_transactions / sample.sample_period_secs;
                         print_kv("Recent TPS", tps);
                         print_kv("Sample Slot", sample.slot);
+                    } else {
+                        eprintln!("No performance samples available.");
+                        return Ok(());
                     }
                 }
-                Err(err) => eprintln!("Failed to fetch performance samples: {}", err),
+                Err(err) => {
+                    eprintln!("Failed to fetch performance samples: {}", err);
+                    return Ok(());
+                }
             }
-        
+
             match get_block_production().await {
                 Ok(prod) => {
                     print_kv("Block Production Range", format!("{} - {}", prod.range.first_slot, prod.range.last_slot));
@@ -45,7 +56,7 @@ async fn main() {
                     print_title("Top 5 Validators by Blocks Produced");
                     println!("{:<45} {:>10} {:>10} {:>10}", "Validator", "Assigned", "Produced", "Success %");
                     println!("{}", "-".repeat(80));
-        
+
                     let mut rows: Vec<_> = prod.by_identity.iter().collect();
                     rows.sort_by_key(|(_, stats)| Reverse(stats.produced));
                     for (validator, stats) in rows.iter().take(5) {
@@ -54,12 +65,19 @@ async fn main() {
                         } else {
                             0.0
                         };
-                        println!("{:<45} {:>10} {:>10} {:>9.2}%", validator, stats.assigned, stats.produced, success_rate);
+                        println!(
+                            "{:<45} {:>10} {:>10} {:>9.2}%",
+                            validator, stats.assigned, stats.produced, success_rate
+                        );
                     }
                 }
-                Err(err) => eprintln!("Failed to fetch block production: {}", err),
+                Err(err) => {
+                    eprintln!("Failed to fetch block production: {}", err);
+                    return Ok(());
+                }
             }
-        },
+        }
+
         Commands::Validator { pubkey } => {
             print_title(&format!("Validator Info: {}", pubkey));
 
@@ -78,10 +96,37 @@ async fn main() {
                         print_kv("Root Slot", account.root_slot);
                     } else {
                         eprintln!("Validator not found in current or delinquent vote accounts.");
+                        return Ok(());
                     }
                 }
-                Err(err) => eprintln!("Failed to fetch vote accounts: {}", err),
+                Err(err) => {
+                    eprintln!("Failed to fetch vote accounts: {}", err);
+                    return Ok(());
+                }
             }
         }
+
+        Commands::Watch => {
+            let (tps, slot) = match get_performance_samples().await {
+                Ok(samples) => {
+                    if let Some(sample) = samples.first() {
+                        let tps = sample.num_transactions / sample.sample_period_secs;
+                        let slot = sample.slot;
+                        (tps, slot)
+                    } else {
+                        eprintln!("No performance samples available");
+                        return Ok(());
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to fetch performance samples: {}", e);
+                    return Ok(());
+                }
+            };
+
+            ui::run_tui(tps, slot).await?;
+        }
     }
+
+    Ok(())
 }

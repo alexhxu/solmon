@@ -12,7 +12,7 @@ pub struct EpochInfo {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PerformanceSample {
-    pub num_slots: u64,
+    // pub num_slots: u64, (Unused for now but could be useful in the future)
     pub num_transactions: u64,
     pub sample_period_secs: u64,
     pub slot: u64
