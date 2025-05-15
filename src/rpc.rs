@@ -22,9 +22,22 @@ pub struct PerformanceSample {
 #[serde(rename_all = "camelCase")]
 pub struct BlockProduction {
     // Key: validator identity as a base-58 encoded string, Value: (# of leader slots, # of blocks produced)
-    pub by_identity: std::collections::HashMap<String, (u64, u64)>,
+    pub by_identity: std::collections::HashMap<String, SlotStats>,
     // First and last slot of block production information (inclusive)
-    pub range: (u64, u64)
+    pub range: SlotRange,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SlotStats {
+    pub assigned: u64,
+    pub produced: u64
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SlotRange {
+    pub first_slot: u64,
+    pub last_slot: u64
 }
 
 #[derive(Debug, Deserialize)]
@@ -91,7 +104,7 @@ pub async fn get_block_production() -> Result<BlockProduction, Box<dyn std::erro
         .await?;
     
     let json: serde_json::Value = res.json().await?;
-    let result: BlockProduction = serde_json::from_value(json["result"].clone())?;
+    let result: BlockProduction = serde_json::from_value(json["result"]["value"].clone())?;
     Ok(result)
 }
 

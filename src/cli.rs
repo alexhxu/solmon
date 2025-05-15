@@ -10,5 +10,9 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Epoch
+    Epoch,
+    Status,
+    Validator {
+        pubkey: String
+    }
 }

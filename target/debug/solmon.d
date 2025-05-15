@@ -1,1 +1,1 @@
-/Users/alexxu/Documents/GitHub/solmon/target/debug/solmon: /Users/alexxu/Documents/GitHub/solmon/src/cli.rs /Users/alexxu/Documents/GitHub/solmon/src/main.rs /Users/alexxu/Documents/GitHub/solmon/src/rpc.rs
+/Users/alexxu/Documents/GitHub/solmon/target/debug/solmon: /Users/alexxu/Documents/GitHub/solmon/src/cli.rs /Users/alexxu/Documents/GitHub/solmon/src/main.rs /Users/alexxu/Documents/GitHub/solmon/src/output.rs /Users/alexxu/Documents/GitHub/solmon/src/rpc.rs
